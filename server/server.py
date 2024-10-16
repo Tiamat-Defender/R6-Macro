@@ -8,9 +8,9 @@ app = Flask(__name__)
 KEYS_CSV = 'D:/Cheat/server/keys.csv'
 
 # CSV file path for user credentials
-
 USERS_CSV = 'D:/Cheat/server/admins.csv'
 
+# Function to authenticate user from CSV
 def authenticate_user(username, password):
     with open(USERS_CSV, mode='r') as file:
         reader = csv.DictReader(file)
@@ -18,45 +18,6 @@ def authenticate_user(username, password):
             if row['username'] == username and row['password'] == password:
                 return True
     return False
-
-# Function to check if a key is valid and set the expiration date if it is ready
-def check_key_validity_and_set_expiration(key):
-    updated_rows = []
-    key_found = False
-    expiration_date = None
-
-    with open(KEYS_CSV, mode='r') as file:
-        reader = csv.DictReader(file)
-        for row in reader:
-            if row['key'] == key:
-                if row['type'] == 'ready':
-                    # Calculate the expiration date based on key type
-                    if row['expiration_date'] == '30_days':
-                        expiration_date = datetime.datetime.now() + datetime.timedelta(days=30)
-                    elif row['expiration_date'] == 'lifetime':
-                        expiration_date = 'lifetime'
-                    
-                    row['expiration_date'] = expiration_date.strftime("%Y-%m-%d") if expiration_date != 'lifetime' else 'lifetime'
-                    row['type'] = 'activated'
-                    key_found = True
-                elif row['type'] == 'activated':
-                    expiration_date = row['expiration_date']
-                    if expiration_date != 'lifetime':
-                        expiration_date = datetime.datetime.strptime(expiration_date, "%Y-%m-%d")
-                        if datetime.datetime.now() <= expiration_date:
-                            key_found = True
-                    else:
-                        key_found = True
-                updated_rows.append(row)
-            else:
-                updated_rows.append(row)
-
-    with open(KEYS_CSV, mode='w', newline='') as file:
-        writer = csv.DictWriter(file, fieldnames=['key', 'type', 'expiration_date'])
-        writer.writeheader()
-        writer.writerows(updated_rows)
-
-    return key_found, expiration_date
 
 # Function to activate a key without setting an expiration date
 def activate_key(key_type):
@@ -74,25 +35,74 @@ def activate_key(key_type):
             updated_rows.append(row)
     
     with open(KEYS_CSV, mode='w', newline='') as file:
-        writer = csv.DictWriter(file, fieldnames=['key', 'type', 'expiration_date'])
+        writer = csv.DictWriter(file, fieldnames=['key', 'type', 'expiration_date', 'hwid'])
         writer.writeheader()
         writer.writerows(updated_rows)
 
     return activated_key  # Return the details of the activated key
 
-# Endpoint for key authentication and setting expiration date
+# Function to check if a key is valid, set expiration date, and verify HWID
+def check_key_validity_and_set_expiration(key, hwid):
+    updated_rows = []
+    key_found = False
+    expiration_date = None
+    hwid_assigned = False
+
+    with open(KEYS_CSV, mode='r') as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            if row['key'] == key:
+                key_found = True
+                if row['type'] == 'activated':
+                    # Check if HWID matches the stored HWID
+                    if row['hwid'] == hwid:
+                        expiration_date = row['expiration_date']
+                        if expiration_date != 'lifetime':
+                            expiration_date = datetime.datetime.strptime(expiration_date, "%Y-%m-%d")
+                            if datetime.datetime.now() <= expiration_date:
+                                hwid_assigned = True
+                    else:
+                        hwid_assigned = False  # HWID does not match
+                elif row['type'] == 'ready':
+                    # First time using the key, assign the HWID
+                    row['hwid'] = hwid
+                    expiration_date = row['expiration_date']  # Set expiration date if applicable
+                    row['type'] = 'activated'  # Mark as activated
+                    hwid_assigned = True  # HWID assigned successfully
+
+                updated_rows.append(row)
+            else:
+                updated_rows.append(row)
+
+    # Update the CSV file
+    with open(KEYS_CSV, mode='w', newline='') as file:
+        writer = csv.DictWriter(file, fieldnames=['key', 'type', 'expiration_date', 'hwid'])
+        writer.writeheader()
+        writer.writerows(updated_rows)
+
+    return key_found, expiration_date, hwid_assigned
+
+# Endpoint for key authentication and HWID validation
 @app.route('/authkey', methods=['GET'])
 def authkey():
     key = request.args.get('key')
-    if not key:
-        return jsonify({'error': 'No key provided'}), 400
+    hwid = request.args.get('hwid')  # HWID passed from the client
 
-    key_valid, expiration_date = check_key_validity_and_set_expiration(key)
-    if key_valid:
+    if not key or not hwid:
+        return jsonify({'error': 'No key provided'}), 400
+    
+    if not hwid:
+        return jsonify({'error': 'No HWID provided'}), 400
+
+    key_valid, expiration_date, hwid_assigned = check_key_validity_and_set_expiration(key, hwid)
+    
+    if key_valid and hwid_assigned:
         return jsonify({
             'message': 'Customer key validated successfully',
             'expiration_date': expiration_date if expiration_date == 'lifetime' else expiration_date.strftime("%Y-%m-%d")
         }), 200
+    elif key_valid and not hwid_assigned:
+        return jsonify({'error': 'HWID mismatch. Access denied.'}), 403
     else:
         return jsonify({'error': 'Invalid key or key already activated'}), 401
 

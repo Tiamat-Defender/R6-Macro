@@ -7,6 +7,8 @@ import pyautogui as pui
 from ttkthemes import ThemedStyle
 from dict import operators
 import random
+import subprocess
+
 
 
 SERVER_URL = 'http://127.0.0.1'
@@ -19,16 +21,29 @@ base_dpi = 1600
 
 root = None
 
+def GetHWID():
+    output = subprocess.check_output('wmic bios get serialnumber', shell=True, text=True)
+    
+    return output
+
 def authenticate(key):
+    hwid = GetHWID()
+    if hwid is None:
+        print("Failed to retrieve HWID. Exiting...")
+        return False
+
+    print(f'Authenticating with key: {key} and HWID: {hwid}')  # Correctly format the output
+
     authkey_url = f'{SERVER_URL}/authkey'
-    params = {'key': key}
+    params = {'key': key, 'hwid': hwid}
+    
     try:
         response = requests.get(authkey_url, params=params)
         if response.status_code == 200:
             print('Customer key validated successfully')
             return True
         else:
-            print(f'Customer key validation failed with status code {response.status_code}')
+            print(f'Customer key validation failed with status code {response.status_code}: {response.json().get("error")}')
             return False
     except requests.exceptions.RequestException as e:
         print(f'An error occurred: {e}')
