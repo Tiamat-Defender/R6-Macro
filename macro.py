@@ -7,6 +7,8 @@ import pyautogui as pui
 from ttkthemes import ThemedStyle
 from dict import operators
 import random
+import subprocess
+
 
 
 SERVER_URL = 'http://127.0.0.1'
@@ -19,16 +21,47 @@ base_dpi = 1600
 
 root = None
 
+def clean_hw_id(raw_hwid):
+    # Split by new lines, filter out empty lines, and join them back
+    lines = raw_hwid.strip().splitlines()
+    cleaned_lines = [line.strip() for line in lines if line.strip()]
+    # Return the last valid HWID line (assuming the last line is the one you want)
+    return cleaned_lines[-1] if cleaned_lines else None
+
+def GetHWID():
+    try:
+        # Attempt to get the BIOS serial number
+        output = subprocess.check_output('wmic bios get serialnumber', shell=True, text=True)
+        hwid = clean_hw_id(output)
+
+        # If BIOS serial number is invalid, check motherboard serial number
+        if hwid is None or hwid == "SerialNumber":
+            output = subprocess.check_output('wmic baseboard get serialnumber', shell=True, text=True)
+            hwid = clean_hw_id(output)
+        
+        return hwid.upper() if hwid else None  # Return uppercase HWID or None if invalid
+    except subprocess.CalledProcessError as e:
+        print(f"Error retrieving HWID: {e}")
+        return None
+
 def authenticate(key):
+    hwid = GetHWID()
+    if hwid is None:
+        print("Failed to retrieve HWID. Exiting...")
+        return False
+
+    print(f'Authenticating with key: {key} and HWID: {hwid}')  # Correctly format the output
+
     authkey_url = f'{SERVER_URL}/authkey'
-    params = {'key': key}
+    params = {'key': key, 'hwid': hwid}
+    
     try:
         response = requests.get(authkey_url, params=params)
         if response.status_code == 200:
             print('Customer key validated successfully')
             return True
         else:
-            print(f'Customer key validation failed with status code {response.status_code}')
+            print(f'Customer key validation failed with status code {response.status_code}: {response.json().get("error")}')
             return False
     except requests.exceptions.RequestException as e:
         print(f'An error occurred: {e}')
@@ -112,6 +145,8 @@ def execute_code():
             current_operator_info = operators[current_operator]
             recoil_values = current_operator_info[current_weapon]
             rapid_fire = recoil_values.get("rapid_fire", False)
+            
+            movement_delay = operators[current_operator][current_weapon]["FireRate"]
 
             if rapid_fire:
                 mouseloc = pui.position()
