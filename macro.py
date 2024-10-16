@@ -10,7 +10,7 @@ import random
 import subprocess
 
 
-
+#base variables needed
 SERVER_URL = 'http://127.0.0.1'
 
 screenWidth, screenHeight = pui.size()
@@ -22,19 +22,18 @@ base_dpi = 1600
 root = None
 
 def clean_hw_id(raw_hwid):
-    # Split by new lines, filter out empty lines, and join them back
+    #format HWID
     lines = raw_hwid.strip().splitlines()
     cleaned_lines = [line.strip() for line in lines if line.strip()]
-    # Return the last valid HWID line (assuming the last line is the one you want)
     return cleaned_lines[-1] if cleaned_lines else None
 
 def GetHWID():
     try:
-        # Attempt to get the BIOS serial number
+        # Try to get bios serial number
         output = subprocess.check_output('wmic bios get serialnumber', shell=True, text=True)
         hwid = clean_hw_id(output)
 
-        # If BIOS serial number is invalid, check motherboard serial number
+        # If BIOS serial number is not found find motherboard serial number
         if hwid is None or hwid == "SerialNumber":
             output = subprocess.check_output('wmic baseboard get serialnumber', shell=True, text=True)
             hwid = clean_hw_id(output)
@@ -50,11 +49,12 @@ def authenticate(key):
         print("Failed to retrieve HWID. Exiting...")
         return False
 
-    print(f'Authenticating with key: {key} and HWID: {hwid}')  # Correctly format the output
+    print(f'Authenticating with key: {key} and HWID: {hwid}')  # Correct format for this is key,hwid
 
     authkey_url = f'{SERVER_URL}/authkey'
     params = {'key': key, 'hwid': hwid}
     
+    #if status code equals 200 then success else dont execute code
     try:
         response = requests.get(authkey_url, params=params)
         if response.status_code == 200:
@@ -73,12 +73,15 @@ def execute_code():
     primary = "primary"
     secondary = "secondary"
     
+    #movement delay will be different on each gun
     movement_delay = 0.03
 
     toggle_button = '5' 
 
+    #must stay enabled or shit will be fucked
     enabled = True
 
+    #simple and explains itself
     current_operator_index = 0
     current_weapon = "primary"
     current_operator = list(operators.keys())[current_operator_index]
@@ -86,11 +89,13 @@ def execute_code():
     current_secondary_weapon = "secondary1"
     last_state = False 
 
+    #will return true if shooting
     def is_mouse_down():
         lmb_state = win32api.GetKeyState(0x01)
         rmb_state = win32api.GetKeyState(0x02) 
         return lmb_state < 0 and rmb_state < 0  
 
+    #switches dictonary element
     def switch_operator():
         nonlocal current_operator, current_primary_weapon, current_secondary_weapon
         selected_operator = operator_selector.get()
@@ -109,6 +114,7 @@ def execute_code():
             current_weapon = secondary_weapon_selector.get()
             weapon_selector.config(text=f"Secondary Weapon: {current_operator} - {current_weapon}")
 
+    #note:Delete anything having to do with dpi as its useless
     def update_configuration():
         global base_vertical_sensitivity, base_horizontal_sensitivity, base_dpi
         base_vertical_sensitivity = float(current_vertical_sensitivity_entry.get())
@@ -167,6 +173,7 @@ def execute_code():
 
         root.after(10, anti_recoil_step)
 
+    #all things having to do with gui
     root = tk.Tk()
     root.title("Operator Selector")
     root.configure(bg='black')

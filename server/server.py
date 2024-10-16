@@ -53,7 +53,7 @@ def check_key_validity_and_set_expiration(key, hwid):
         for row in reader:
             if row['key'] == key:
                 key_found = True
-                # Normalize HWIDs for comparison
+                # Format HWIDs for comparison
                 stored_hwid = row['hwid'].strip() if row['hwid'] else ''
                 hwid = hwid.strip() if hwid else ''
 
@@ -65,7 +65,7 @@ def check_key_validity_and_set_expiration(key, hwid):
                     else:
                         hwid_assigned = False  # HWID does not match
                 elif row['type'] == 'ready':
-                    # First time using the key, assign the HWID
+                    # First time using the key assign the HWID
                     row['hwid'] = hwid  # Save the HWID
                     expiration_date = row['expiration_date']  # Set expiration date if applicable
                     row['type'] = 'activated'  # Mark as activated
