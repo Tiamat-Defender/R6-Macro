@@ -1,3 +1,5 @@
+#never commit your dict as multiple people will be working on it at the same time
+
 operators = {
         "Striker": {
             "primary1": {"vertical": [8.0], "horizontal": [-0.5]},
