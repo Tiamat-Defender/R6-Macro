@@ -5,10 +5,10 @@ from flask import Flask, request, jsonify
 app = Flask(__name__)
 
 # CSV file path for keys storage
-KEYS_CSV = 'D:/Cheat/server/keys.csv'
+KEYS_CSV = 'D:/CheatHWID/server/keys.csv'
 
 # CSV file path for user credentials
-USERS_CSV = 'D:/Cheat/server/admins.csv'
+USERS_CSV = 'D:/CheatHWID/server/admins.csv'
 
 # Function to authenticate user from CSV
 def authenticate_user(username, password):
@@ -33,7 +33,7 @@ def activate_key(key_type):
                 activated_key = row
                 key_activated = True  # Mark key as activated
             updated_rows.append(row)
-    
+
     with open(KEYS_CSV, mode='w', newline='') as file:
         writer = csv.DictWriter(file, fieldnames=['key', 'type', 'expiration_date', 'hwid'])
         writer.writeheader()
@@ -53,19 +53,20 @@ def check_key_validity_and_set_expiration(key, hwid):
         for row in reader:
             if row['key'] == key:
                 key_found = True
+                # Normalize HWIDs for comparison
+                stored_hwid = row['hwid'].strip() if row['hwid'] else ''
+                hwid = hwid.strip() if hwid else ''
+
                 if row['type'] == 'activated':
                     # Check if HWID matches the stored HWID
-                    if row['hwid'] == hwid:
+                    if stored_hwid == hwid:
                         expiration_date = row['expiration_date']
-                        if expiration_date != 'lifetime':
-                            expiration_date = datetime.datetime.strptime(expiration_date, "%Y-%m-%d")
-                            if datetime.datetime.now() <= expiration_date:
-                                hwid_assigned = True
+                        hwid_assigned = True
                     else:
                         hwid_assigned = False  # HWID does not match
                 elif row['type'] == 'ready':
                     # First time using the key, assign the HWID
-                    row['hwid'] = hwid
+                    row['hwid'] = hwid  # Save the HWID
                     expiration_date = row['expiration_date']  # Set expiration date if applicable
                     row['type'] = 'activated'  # Mark as activated
                     hwid_assigned = True  # HWID assigned successfully
@@ -88,11 +89,14 @@ def authkey():
     key = request.args.get('key')
     hwid = request.args.get('hwid')  # HWID passed from the client
 
-    if not key or not hwid:
+    if not key:
         return jsonify({'error': 'No key provided'}), 400
     
     if not hwid:
         return jsonify({'error': 'No HWID provided'}), 400
+
+    # Log the received HWID for debugging
+    print(f'Received key: {key}, HWID: "{hwid}"')
 
     key_valid, expiration_date, hwid_assigned = check_key_validity_and_set_expiration(key, hwid)
     

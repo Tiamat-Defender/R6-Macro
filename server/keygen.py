@@ -9,10 +9,10 @@ def generate_keys(n=100):
     while len(keys) < n:
         key = ''.join(random.choices(string.ascii_letters + string.digits, k=20))
         if key not in [k['key'] for k in keys]:
-            keys.append({'key': key, 'type': 'pending', 'expiration_date': ''})
+            keys.append({'key': key, 'type': 'pending', 'expiration_date': '', 'hwid': ''})
     
     with open(KEYS_CSV, mode='w', newline='') as file:
-        writer = csv.DictWriter(file, fieldnames=['key', 'type', 'expiration_date'])
+        writer = csv.DictWriter(file, fieldnames=['key', 'type', 'expiration_date', 'hwid'])
         writer.writeheader()
         writer.writerows(keys)
 

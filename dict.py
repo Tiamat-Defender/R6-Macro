@@ -130,12 +130,12 @@ operators = {
             "secondary3": {"vertical": [0.01], "horizontal": [0.01]}
         },
         "Zofia": {
-            "primary1": {"vertical": [10.2], "horizontal": [0.03]},
-            "primary2": {"vertical": [0.01], "horizontal": [0.01]},
-            "primary3": {"vertical": [0.01], "horizontal": [0.01]},
-            "secondary1": {"vertical": [0.01], "horizontal": [0.01]},
-            "secondary2": {"vertical": [0.01], "horizontal": [0.01]},
-            "secondary3": {"vertical": [0.01], "horizontal": [0.01]}
+            "primary1": {"vertical": [10.2], "horizontal": [0.03], "FireRate": 0.01217},
+            "primary2": {"vertical": [7,7], "horizontal": [-1,2], "FireRate": 0.01217},
+            "primary3": {"vertical": [0.01], "horizontal": [0.01], "FireRate": 100000},
+            "secondary1": {"vertical": [0.01], "horizontal": [0.01], "FireRate": 0.01217},
+            "secondary2": {"vertical": [0.01], "horizontal": [0.01], "FireRate": 0.01217},
+            "secondary3": {"vertical": [0.01], "horizontal": [0.01], "FireRate": 0.01217}
         },
         "Dokkabaei": {
             "primary1": {"vertical": [0.01], "horizontal": [0.01]},

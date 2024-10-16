@@ -21,10 +21,28 @@ base_dpi = 1600
 
 root = None
 
+def clean_hw_id(raw_hwid):
+    # Split by new lines, filter out empty lines, and join them back
+    lines = raw_hwid.strip().splitlines()
+    cleaned_lines = [line.strip() for line in lines if line.strip()]
+    # Return the last valid HWID line (assuming the last line is the one you want)
+    return cleaned_lines[-1] if cleaned_lines else None
+
 def GetHWID():
-    output = subprocess.check_output('wmic bios get serialnumber', shell=True, text=True)
-    
-    return output
+    try:
+        # Attempt to get the BIOS serial number
+        output = subprocess.check_output('wmic bios get serialnumber', shell=True, text=True)
+        hwid = clean_hw_id(output)
+
+        # If BIOS serial number is invalid, check motherboard serial number
+        if hwid is None or hwid == "SerialNumber":
+            output = subprocess.check_output('wmic baseboard get serialnumber', shell=True, text=True)
+            hwid = clean_hw_id(output)
+        
+        return hwid.upper() if hwid else None  # Return uppercase HWID or None if invalid
+    except subprocess.CalledProcessError as e:
+        print(f"Error retrieving HWID: {e}")
+        return None
 
 def authenticate(key):
     hwid = GetHWID()
@@ -127,6 +145,8 @@ def execute_code():
             current_operator_info = operators[current_operator]
             recoil_values = current_operator_info[current_weapon]
             rapid_fire = recoil_values.get("rapid_fire", False)
+            
+            movement_delay = operators[current_operator][current_weapon]["FireRate"]
 
             if rapid_fire:
                 mouseloc = pui.position()
