@@ -1,0 +1,1 @@
+pyinstaller --onefile --name elite.R6 --icon elite.ico --noconsole macro.py

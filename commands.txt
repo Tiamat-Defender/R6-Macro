@@ -1,0 +1,21 @@
+
+30 day:
+
+curl -X POST http://127.0.0.1:80/activate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "secret_key": "7BB74954CE45D98A182BA5A8DC93C",
+    "username": "nigger",
+    "password": "000393791",
+    "key_type": "30_days"
+  }'
+
+Invoke-RestMethod -Uri "http://127.0.0.1:80/activate" `
+-Method POST `
+-Headers @{ "Content-Type" = "application/json" } `
+-Body '{"secret_key": "7BB74954CE45D98A182BA5A8DC93C", "username": "nigger", "password": "000393791", "key_type": "lifetime"}'
+
+
+
+
+validate a key:curl -G -d "key=nylELQsM3epaf7mczm3X" http://love_ki.taqy42.site/authkey
